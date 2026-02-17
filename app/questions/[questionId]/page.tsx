@@ -40,7 +40,7 @@ export default async function QuestionDetailPage(props: PageProps) {
   // ... (중간 코드는 그대로 둠)
 
   // 2. 맨 아래 .eq 부분에서 params.questionId 대신 그냥 questionId를 씁니다.
-  .eq('id', questionId) // (52번째 줄 근처 수정)
+  .eq('id', questionId)
   .maybeSingle();
 
 
