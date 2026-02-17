@@ -5,8 +5,9 @@ import { Clock, MessageCircle, Plus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
+// 1. [수정] params를 Promise로 감싸줍니다.
 type PageProps = {
-  params: { directorId: string };
+  params: Promise<{ directorId: string }>;
 };
 
 function formatKST(iso: string) {
@@ -21,13 +22,18 @@ function formatKST(iso: string) {
   }
 }
 
-export default async function DirectorDetailPage({ params }: PageProps) {
-  const supabase = createClient();
+// 2. [수정] 함수 인자를 props로 받고, await 처리를 합니다.
+export default async function DirectorDetailPage(props: PageProps) {
+  const params = await props.params; // 여기서 await 필수!
+  const { directorId } = params;
+
+  // 3. [수정] supabase 클라이언트 생성 시 await를 붙입니다.
+  const supabase = await createClient();
 
   const { data: director, error: directorError } = await supabase
     .from('directors')
     .select('id, name, profile_image_url, tmdb_person_id, kmdb_person_id')
-    .eq('id', params.directorId)
+    .eq('id', directorId) // params.directorId 대신 위에서 꺼낸 directorId 사용
     .maybeSingle();
 
   if (directorError || !director) notFound();
