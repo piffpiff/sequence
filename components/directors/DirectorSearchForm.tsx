@@ -63,13 +63,12 @@ export default function DirectorSearchForm() {
   return (
     <section className="w-full">
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-sm">
-        {/* ✅ 헤더(제목/설명) 제거하고 검색 UI만 */}
         <form onSubmit={onSubmit} className="p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="감독 이름을 입력… (예: 봉준호)"
+              placeholder="질문할 감독 이름을 입력하세요"
               className="w-full flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-base text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-zinc-600"
               aria-label="감독 검색어"
             />
@@ -81,7 +80,7 @@ export default function DirectorSearchForm() {
                          bg-zinc-100 text-zinc-900
                          hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? '검색 중…' : '검색'}
+              {isPending ? '찾는 중…' : '질문할 감독 찾기'}
             </button>
           </div>
 
@@ -93,9 +92,7 @@ export default function DirectorSearchForm() {
 
           <div className="mt-4">
             {results.length === 0 ? (
-              <div className="text-sm text-zinc-500">
-                {query.trim() ? '검색 결과가 없어요.' : ''}
-              </div>
+              <div className="text-sm text-zinc-500">{query.trim() ? '검색 결과가 없어요.' : ''}</div>
             ) : (
               <ul className="overflow-hidden rounded-xl border border-zinc-800 divide-y divide-zinc-800">
                 {results.map((item) => {
@@ -146,7 +143,7 @@ export default function DirectorSearchForm() {
                         </div>
 
                         <div className="shrink-0 text-sm text-zinc-400">
-                          {isSaving ? '저장…' : '선택'}
+                          {isSaving ? '이동…' : '선택'}
                         </div>
                       </button>
                     </li>
