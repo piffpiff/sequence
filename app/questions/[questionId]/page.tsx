@@ -42,9 +42,10 @@ function isNonNull<T>(v: T | null | undefined): v is T {
 }
 
 export default async function QuestionDetailPage({ params }: PageProps) {
-  const { questionId } = await params; // ✅ Next 15: params await
-  const supabase = await createClient(); // ✅ Next 15: createClient await
+  const { questionId } = await params;          // ✅ Next 15: params await
+  const supabase = await createClient();        // ✅ Next 15: createClient await
 
+  // ✅ 최소 스키마: questions + directors(있는 컬럼만)
   const { data: question, error: qError } = await supabase
     .from('questions')
     .select(
@@ -67,6 +68,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
 
   const director = Array.isArray(question.directors) ? question.directors[0] : question.directors;
 
+  // ✅ 최소 스키마: question_chains + child_question join
   const { data: edges, error: edgesError } = await supabase
     .from('question_chains')
     .select(
@@ -83,7 +85,6 @@ export default async function QuestionDetailPage({ params }: PageProps) {
     .eq('parent_question_id', question.id)
     .order('created_at', { ascending: false });
 
-  // ✅ 타입 가드로 null 완전 제거 => childQuestions: ChildQuestionItem[]
   const childQuestions: ChildQuestionItem[] = (edges ?? [])
     .map((e: any): ChildQuestionItem | null => {
       const child = Array.isArray(e.child_question) ? e.child_question[0] : e.child_question;
@@ -144,7 +145,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Hero: Parent question */}
+      {/* Parent */}
       <section className="relative overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.10),transparent_45%),radial-gradient(circle_at_10%_70%,rgba(255,255,255,0.06),transparent_40%)]" />
@@ -153,7 +154,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           <div className="mx-auto max-w-3xl">
             <div className="mb-3 flex items-center justify-center gap-2 text-xs text-zinc-400">
               <MessageCircle className="h-4 w-4 text-zinc-500" />
-              <span>질문</span>
+              <span>원본 질문</span>
             </div>
 
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-6 shadow-sm sm:p-8">
@@ -191,7 +192,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Children list */}
+      {/* Children */}
       <section className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -261,7 +262,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Floating reply button */}
+      {/* Floating reply */}
       <Link
         href={`/questions/${question.id}/reply`}
         className="fixed bottom-6 right-6 inline-flex h-12 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-100 px-5 text-sm font-semibold text-zinc-900 shadow-lg hover:bg-white"

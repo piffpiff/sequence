@@ -24,23 +24,23 @@ function formatKST(iso: string) {
 }
 
 export default async function QuestionReplyPage({ params }: PageProps) {
-  const { questionId } = await params;          // ✅
-  const supabase = await createClient();        // ✅
+  const { questionId } = await params;      // ✅
+  const supabase = await createClient();    // ✅
 
   const { data: parent, error } = await supabase
     .from('questions')
     .select(
       `
-      id,
-      body,
-      created_at,
-      director_id,
-      directors (
         id,
-        name,
-        profile_image_url
-      )
-    `
+        body,
+        created_at,
+        director_id,
+        directors (
+          id,
+          name,
+          profile_image_url
+        )
+      `
     )
     .eq('id', questionId)
     .maybeSingle();

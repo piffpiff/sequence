@@ -18,18 +18,10 @@ function endsWithQuestionMark(body: string): boolean {
   return body.trimEnd().endsWith('?');
 }
 
-function friendlySupabaseErrorMessage(message: string): string {
+function friendlyError(message: string): string {
+  // DB constraint: questions_must_end_with_question_mark
   if (message.includes('questions_must_end_with_question_mark')) {
     return '질문은 반드시 물음표(?)로 끝나야 등록돼요.';
-  }
-  if (message.includes('questions_body_not_blank')) {
-    return '질문을 한 글자 이상 입력해 주세요.';
-  }
-  if (message.toLowerCase().includes('child question must target the same director')) {
-    return '이어 묻기는 같은 감독에게만 연결할 수 있어요.';
-  }
-  if (message.includes('question_chains_child_single_parent')) {
-    return '이 질문은 이미 다른 질문에 이어진 질문이에요.';
   }
   return message || '처리 중 오류가 발생했어요.';
 }
@@ -39,7 +31,7 @@ export async function createFollowUpQuestion(
   prevState: CreateFollowUpState,
   formData: FormData
 ): Promise<CreateFollowUpState> {
-  const supabase = await createClient(); // ✅
+  const supabase = await createClient(); // ✅ Next 15
 
   const body = normalizeBody(formData.get('body'));
 
@@ -48,6 +40,7 @@ export async function createFollowUpQuestion(
     return { ok: false, error: '질문은 반드시 물음표(?)로 끝나야 등록돼요.' };
   }
 
+  // 부모 질문 조회(같은 director_id로 child 질문 생성해야 함)
   const { data: parent, error: parentError } = await supabase
     .from('questions')
     .select('id, director_id')
@@ -56,42 +49,32 @@ export async function createFollowUpQuestion(
 
   if (parentError || !parent) return { ok: false, error: '부모 질문을 찾을 수 없어요.' };
 
-  let userId: string | null = null;
-  try {
-    const { data } = await supabase.auth.getUser();
-    userId = data?.user?.id ?? null;
-  } catch {
-    userId = null;
-  }
-
+  // ✅ 최소 스키마: questions에는 director_id/body만 넣는다
   const { data: child, error: childError } = await supabase
     .from('questions')
     .insert({
       director_id: parent.director_id,
       body,
-      user_id: userId,
-      is_anonymous: userId ? false : true,
     })
     .select('id')
     .single();
 
   if (childError || !child?.id) {
-    return { ok: false, error: friendlySupabaseErrorMessage(childError?.message ?? '') };
+    return { ok: false, error: friendlyError(childError?.message ?? '') };
   }
 
+  // ✅ 최소 스키마: question_chains에는 parent/child만
   const { error: chainError } = await supabase.from('question_chains').insert({
     parent_question_id: parentQuestionId,
     child_question_id: child.id,
-    created_by: userId,
   });
 
   if (chainError) {
+    // 체인 실패 시 방금 만든 질문 정리
     await supabase.from('questions').delete().eq('id', child.id);
-    return { ok: false, error: friendlySupabaseErrorMessage(chainError.message ?? '') };
+    return { ok: false, error: friendlyError(chainError.message ?? '') };
   }
 
   revalidatePath(`/questions/${parentQuestionId}`);
-  revalidatePath(`/directors/${parent.director_id}`);
-
   redirect(`/questions/${parentQuestionId}`);
 }
