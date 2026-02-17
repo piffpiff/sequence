@@ -74,7 +74,8 @@ function unwrapDirector(d: QuestionRow['directors']): DirectorJoin | null {
  * - question_chains.child_question_id로 등장하는 질문(이어묻기 질문)은 제외
  */
 async function fetchRootQuestionsForFeed(
-  supabase: ReturnType<typeof createClient>,
+  // [핵심 수정] Awaited<...>를 추가해서 Promise가 풀린 타입을 받도록 명시합니다.
+  supabase: Awaited<ReturnType<typeof createClient>>,
   targetCount: number
 ): Promise<{ items: Omit<FeedItem, 'reply_count'>[]; error: string | null }> {
   const BATCH = 25;
@@ -156,7 +157,7 @@ async function fetchRootQuestionsForFeed(
 
 export default async function HomePage() {
   noStore();
-  const supabase = await createClient();
+  const supabase = await createClient(); // (여긴 이미 await가 잘 되어 있었습니다)
 
   // 1) 루트 질문 10개 확보
   const { items: baseFeed, error: baseErr } = await fetchRootQuestionsForFeed(supabase, 10);
