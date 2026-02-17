@@ -15,7 +15,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
-  params: { questionId: string };
+  params: Promise<{ questionId: string }>;
 };
 
 function formatKST(iso: string) {
@@ -30,27 +30,19 @@ function formatKST(iso: string) {
   }
 }
 
-export default async function QuestionDetailPage({ params }: PageProps) {
+// 1. 함수 인자를 props로 받고, 바로 await params를 합니다.
+export default async function QuestionDetailPage(props: PageProps) {
+  const params = await props.params;  // 여기서 await 필수!
+  const { questionId } = params;      // ID 꺼내기
+
   const supabase = await createClient();
 
-  // 1) 부모(현재) 질문 + 감독 정보
-  const { data: question, error: qError } = await supabase
-    .from('questions')
-    .select(
-      `
-        id,
-        body,
-        created_at,
-        director_id,
-        directors (
-          id,
-          name,
-          profile_image_url
-        )
-      `
-    )
-    .eq('id', params.questionId)
-    .maybeSingle();
+  // ... (중간 코드는 그대로 둠)
+
+  // 2. 맨 아래 .eq 부분에서 params.questionId 대신 그냥 questionId를 씁니다.
+  .eq('id', questionId) // (52번째 줄 근처 수정)
+  .maybeSingle();
+
 
   if (qError || !question) notFound();
 
