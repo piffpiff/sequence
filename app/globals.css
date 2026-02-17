@@ -5,11 +5,36 @@
   --foreground: #171717;
 }
 
+/* ✅ Tailwind v4: 전역 토큰(테마 변수) 오버라이드 */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ✅ 가독성용: 글자 크기 스케일을 한 단계 키움
+     Tailwind 문서 기준: text-sm은 var(--text-sm), line-height는 var(--text-sm--line-height) 사용  [oai_citation:1‡tailwindcss.com](https://tailwindcss.com/docs/font-size)
+  */
+  --text-xs: 0.875rem;              /* 14px */
+  --text-xs--line-height: 1.45;
+
+  --text-sm: 1rem;                  /* 16px */
+  --text-sm--line-height: 1.65;
+
+  --text-base: 1.125rem;            /* 18px */
+  --text-base--line-height: 1.9;
+
+  --text-lg: 1.25rem;               /* 20px */
+  --text-lg--line-height: 2.05;
+
+  --text-xl: 1.5rem;                /* 24px */
+  --text-xl--line-height: 2.35;
+
+  --text-2xl: 1.875rem;             /* 30px */
+  --text-2xl--line-height: 2.7;
+
+  --text-3xl: 2.25rem;              /* 36px */
+  --text-3xl--line-height: 3.1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +47,53 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+
+  /* ✅ 폰트: Geist 있으면 Geist 우선, 없으면 Arial */
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+
+  /* ✅ 기본 폰트 크기/줄간격을 전역 토큰으로 고정 */
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+
+  text-rendering: optimizeLegibility;
+}
+
+/* ✅ 기본 요소 가독성 강화 */
+@layer base {
+  input,
+  textarea,
+  button,
+  select {
+    font: inherit;
+  }
+
+  p {
+    line-height: 1.85;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-zinc-400;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(244 244 245 / 0.9);
+    outline-offset: 2px;
+  }
+}
+
+/* ✅ “흐린 회색 텍스트”를 전역에서 더 선명하게 */
+@layer utilities {
+  /* 너가 코드에서 많이 쓰는 text-zinc-500/600을 더 밝게 */
+  .text-zinc-500 {
+    @apply text-zinc-300;
+  }
+  .text-zinc-600 {
+    @apply text-zinc-400;
+  }
+
+  /* 구분선이 너무 흐리면 살짝 올림 */
+  .border-zinc-800 {
+    @apply border-zinc-700;
+  }
 }
