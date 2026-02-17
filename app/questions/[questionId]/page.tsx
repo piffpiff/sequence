@@ -240,7 +240,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-3">
-            {childQuestions.map((child) => (
+            {childQuestions?.filter((c) => c !== null).map((child) => (
               <li key={child.id}>
                 <Link
                   href={`/questions/${child.id}`}
