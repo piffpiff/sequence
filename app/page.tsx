@@ -78,7 +78,7 @@ function unwrapDirector(d: QuestionRow['directors']): DirectorJoin | null {
  * 최신 질문을 배치로 더 가져오며 필터링한다.
  */
 async function fetchRootQuestionsForFeed(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   targetCount: number
 ): Promise<{ items: Omit<FeedItem, 'reply_count'>[]; error: string | null }> {
   const BATCH = 25;        // 한 번에 가져올 질문 수
