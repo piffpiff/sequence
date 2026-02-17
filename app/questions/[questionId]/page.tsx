@@ -30,11 +30,21 @@ function formatKST(iso: string) {
   }
 }
 
-export default async function QuestionDetailPage({ params }: PageProps) {
-  const { questionId } = await params;          // ✅
-  const supabase = await createClient();        // ✅
+type ChildQuestionItem = {
+  id: string;
+  body: string;
+  created_at: string | null;
+  chain_created_at: string | null;
+};
 
-  // 부모 질문 + 감독
+function isNonNull<T>(v: T | null | undefined): v is T {
+  return v != null;
+}
+
+export default async function QuestionDetailPage({ params }: PageProps) {
+  const { questionId } = await params; // ✅ Next 15: params await
+  const supabase = await createClient(); // ✅ Next 15: createClient await
+
   const { data: question, error: qError } = await supabase
     .from('questions')
     .select(
@@ -57,7 +67,6 @@ export default async function QuestionDetailPage({ params }: PageProps) {
 
   const director = Array.isArray(question.directors) ? question.directors[0] : question.directors;
 
-  // 자식 질문 최신순(체인 생성시각 기준)
   const { data: edges, error: edgesError } = await supabase
     .from('question_chains')
     .select(
@@ -74,20 +83,20 @@ export default async function QuestionDetailPage({ params }: PageProps) {
     .eq('parent_question_id', question.id)
     .order('created_at', { ascending: false });
 
-  const childQuestions =
-    (edges ?? [])
-      .map((e: any) => {
-        const child = Array.isArray(e.child_question) ? e.child_question[0] : e.child_question;
-        if (!child?.id) return null;
+  // ✅ 타입 가드로 null 완전 제거 => childQuestions: ChildQuestionItem[]
+  const childQuestions: ChildQuestionItem[] = (edges ?? [])
+    .map((e: any): ChildQuestionItem | null => {
+      const child = Array.isArray(e.child_question) ? e.child_question[0] : e.child_question;
+      if (!child?.id) return null;
 
-        return {
-          id: child.id as string,
-          body: child.body as string,
-          created_at: (child.created_at as string | null) ?? null,
-          chain_created_at: (e.created_at as string | null) ?? null,
-        };
-      })
-      .filter(Boolean) ?? [];
+      return {
+        id: child.id as string,
+        body: child.body as string,
+        created_at: (child.created_at as string | null) ?? null,
+        chain_created_at: (e.created_at as string | null) ?? null,
+      };
+    })
+    .filter(isNonNull);
 
   const childCount = childQuestions.length;
 
@@ -135,7 +144,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero: Parent question */}
       <section className="relative overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.10),transparent_45%),radial-gradient(circle_at_10%_70%,rgba(255,255,255,0.06),transparent_40%)]" />
@@ -182,7 +191,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Children */}
+      {/* Children list */}
       <section className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -252,7 +261,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Floating reply */}
+      {/* Floating reply button */}
       <Link
         href={`/questions/${question.id}/reply`}
         className="fixed bottom-6 right-6 inline-flex h-12 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-100 px-5 text-sm font-semibold text-zinc-900 shadow-lg hover:bg-white"
