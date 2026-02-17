@@ -53,8 +53,7 @@ export default async function QuestionDetailPage(props: PageProps) {
   //    - child_question을 questions FK로 join
   const { data: edges, error: edgesError } = await supabase
     .from('question_chains')
-    .select(
-      `
+    .select(`
         id,
         created_at,
         child_question:questions!question_chains_child_question_id_fkey (
