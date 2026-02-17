@@ -13,8 +13,9 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+// 1. [수정] params를 Promise로 감싸야 합니다.
 type PageProps = {
-  params: { questionId: string };
+  params: Promise<{ questionId: string }>;
 };
 
 function formatKST(iso: string) {
@@ -29,7 +30,12 @@ function formatKST(iso: string) {
   }
 }
 
-export default async function QuestionDetailPage({ params }: PageProps) {
+// 2. [수정] 함수 인자를 props로 받고, await params 처리를 합니다.
+export default async function QuestionDetailPage(props: PageProps) {
+  const params = await props.params; // 여기서 await 필수!
+  const { questionId } = params;
+
+  // 3. [수정] createClient에도 await 필수!
   const supabase = await createClient();
 
   // 부모(현재) 질문 + 감독
@@ -48,7 +54,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         )
       `
     )
-    .eq('id', params.questionId)
+    .eq('id', questionId) // params.questionId 대신 위에서 꺼낸 questionId 사용
     .maybeSingle();
 
   if (qError || !question) notFound();
@@ -72,6 +78,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
     .eq('parent_question_id', question.id)
     .order('created_at', { ascending: false });
 
+  // 4. [수정] null 값 필터링을 안전하게 처리
   const childQuestions =
     (edges ?? [])
       .map((e) => {
@@ -88,7 +95,10 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           chain_created_at: ((e as any).created_at as string | null) ?? null,
         };
       })
-      .filter(Boolean) ?? [];
+      .filter((item) => item !== null); // Boolean 대신 명시적 null 체크 권장
+
+  // 타입 단언 (null 필터링 후)
+  const safeChildQuestions = childQuestions as NonNullable<typeof childQuestions[number]>[];
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
@@ -113,7 +123,6 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* 서버 컴포넌트라 '복사'는 못하지만, 링크 아이콘은 “공유 느낌”으로 유지 */}
             <Link
               href={`/questions/${question.id}`}
               className="inline-flex items-center gap-2 border-2 border-zinc-700 bg-zinc-950 px-4 py-2 text-base font-semibold hover:bg-zinc-900"
@@ -187,7 +196,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           </div>
 
           <div className="text-base text-zinc-300">
-            {childQuestions.length ? `${childQuestions.length}개` : '0개'}
+            {safeChildQuestions.length ? `${safeChildQuestions.length}개` : '0개'}
           </div>
         </div>
 
@@ -196,7 +205,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
             <p className="text-lg font-semibold">이어 묻기를 불러오지 못했어요.</p>
             <p className="mt-2 text-base text-zinc-300">잠시 후 다시 시도해 주세요.</p>
           </div>
-        ) : childQuestions.length === 0 ? (
+        ) : safeChildQuestions.length === 0 ? (
           <div className="mt-4 border-2 border-zinc-700 bg-zinc-950 p-5">
             <p className="text-lg font-semibold">아직 이어 묻기가 없어요.</p>
             <p className="mt-2 text-base text-zinc-300">
@@ -215,7 +224,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           </div>
         ) : (
           <ul className="mt-4 border-2 border-zinc-700 bg-zinc-950 divide-y-2 divide-zinc-700">
-            {childQuestions.map((child) => (
+            {safeChildQuestions.map((child) => (
               <li key={child.id}>
                 <Link href={`/questions/${child.id}`} className="block p-4 hover:bg-zinc-900">
                   <div className="flex items-start gap-3">
