@@ -34,6 +34,10 @@ function formatKST(iso: string) {
 export default async function QuestionDetailPage(props: PageProps) {
   const params = await props.params;  // 여기서 await 필수!
   const { questionId } = params;      // ID 꺼내기
+
+  // [수정 포인트] supabase 클라이언트를 먼저 만듭니다!
+  const supabase = await createClient();
+
   const { data: question, error: qError } = await supabase
     .from('questions')
     .select(`
@@ -50,14 +54,11 @@ export default async function QuestionDetailPage(props: PageProps) {
     .eq('id', questionId)
     .maybeSingle();
 
-
   if (qError || !question) notFound();
 
   const director = Array.isArray(question.directors) ? question.directors[0] : question.directors;
 
   // 2) question_chains JOIN으로 자식 질문들(이어묻기) 최신순
-  //    - question_chains.created_at 기준 최신순
-  //    - child_question을 questions FK로 join
   const { data: edges, error: edgesError } = await supabase
     .from('question_chains')
     .select(`
@@ -87,7 +88,7 @@ export default async function QuestionDetailPage(props: PageProps) {
           chain_created_at: (e.created_at as string | null) ?? null,
         };
       })
-      .filter(Boolean) ?? [];
+      .filter((item) => item !== null) ?? [];
 
   const childCount = childQuestions.length;
 
@@ -238,7 +239,7 @@ export default async function QuestionDetailPage(props: PageProps) {
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-3">
-            {childQuestions?.filter((c) => c !== null).map((child) => (
+            {childQuestions?.map((child) => (
               <li key={child.id}>
                 <Link
                   href={`/questions/${child.id}`}
