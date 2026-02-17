@@ -171,7 +171,7 @@ export default async function HomePage() {
   // 실시간성(캐시 비활성화)
   noStore();
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1) 루트 질문 10개 확보(필터링 포함)
   const { items: baseFeed, error: baseErr } = await fetchRootQuestionsForFeed(supabase, 10);
