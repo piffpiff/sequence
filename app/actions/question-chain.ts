@@ -58,7 +58,7 @@ export async function createFollowUpQuestion(
   prevState: CreateFollowUpState,
   formData: FormData
 ): Promise<CreateFollowUpState> {
-  const supabase = createClient();
+  const supabase = awaitcreateClient();
 
   const body = normalizeBody(formData.get('body'));
 
