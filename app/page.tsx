@@ -8,22 +8,16 @@ export const dynamic = 'force-dynamic';
 
 function timeAgoKorean(iso: string | null) {
   if (!iso) return '';
-
   const now = Date.now();
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return '';
 
-  const diffMs = Math.max(0, now - then);
-  const diffSec = Math.floor(diffMs / 1000);
-
+  const diffSec = Math.floor(Math.max(0, now - then) / 1000);
   if (diffSec < 60) return '방금 전';
-
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `${diffMin}분 전`;
-
   const diffHour = Math.floor(diffMin / 60);
   if (diffHour < 24) return `${diffHour}시간 전`;
-
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 7) return `${diffDay}일 전`;
 
@@ -56,11 +50,7 @@ type FeedItem = {
   id: string;
   body: string;
   created_at: string | null;
-  director: {
-    id: string;
-    name: string;
-    profile_image_url: string | null;
-  } | null;
+  director: { id: string; name: string; profile_image_url: string | null } | null;
   reply_count: number;
 };
 
@@ -115,11 +105,7 @@ async function fetchRootQuestionsForFeed(
           body: q.body,
           created_at: q.created_at,
           director: director
-            ? {
-                id: director.id,
-                name: director.name,
-                profile_image_url: director.profile_image_url ?? null,
-              }
+            ? { id: director.id, name: director.name, profile_image_url: director.profile_image_url ?? null }
             : null,
         };
       });
@@ -152,14 +138,13 @@ async function fetchRootQuestionsForFeed(
 export default async function HomePage() {
   noStore();
 
-  const supabase = await createClient(); // ✅
+  const supabase = await createClient();
 
   const { items: baseFeed, error: baseErr } = await fetchRootQuestionsForFeed(supabase, 10);
 
   const replyCountByParent = new Map<string, number>();
   if (!baseErr && baseFeed.length > 0) {
     const ids = baseFeed.map((q) => q.id);
-
     const { data: edges, error: edgesErr } = await supabase
       .from('question_chains')
       .select('parent_question_id')
@@ -180,27 +165,32 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
-      <header className="border-b border-zinc-800 bg-zinc-950/40">
-        <div className="mx-auto max-w-5xl px-4 py-10">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-zinc-800 bg-zinc-950 text-sm font-semibold tracking-tight text-zinc-100">
-                S
-              </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-xl font-semibold tracking-tight text-zinc-50">
-                  Sequence
-                </h1>
-                <p className="mt-1 text-xs text-zinc-500">감독에게 “질문”만 남길 수 있는 곳</p>
-              </div>
-            </div>
+      {/* HERO */}
+      <section className="px-4 pt-20 pb-10 sm:pt-24">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-7xl">
+              SEQUENCE<span className="text-red-500">.</span>
+            </h1>
+
+            <p className="mt-6 text-lg font-medium text-zinc-300 sm:text-xl">
+              대답은 닫힘이고, 질문은 열림이다.
+              <br />
+              영화 감독을 향한 질문 플랫폼
+            </p>
           </div>
 
-          <DirectorSearchForm />
+          {/* ✅ 폭 넓게 */}
+          <div className="mt-10 flex justify-center">
+            <div className="w-full max-w-3xl">
+              <DirectorSearchForm />
+            </div>
+          </div>
         </div>
-      </header>
+      </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-10">
+      {/* 최신 질문 피드 */}
+      <section className="mx-auto max-w-5xl px-4 pb-16">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
@@ -209,7 +199,6 @@ export default async function HomePage() {
             </h2>
             <p className="mt-1 text-xs text-zinc-500">루트 질문만 최신순으로 10개 보여줘요.</p>
           </div>
-
           <div className="text-xs text-zinc-500">{feed.length ? `${feed.length}개` : '0개'}</div>
         </div>
 
