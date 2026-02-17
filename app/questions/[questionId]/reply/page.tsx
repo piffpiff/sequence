@@ -24,7 +24,7 @@ function formatKST(iso: string) {
 }
 
 export default async function QuestionReplyPage({ params }: PageProps) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: parent, error } = await supabase
     .from('questions')
