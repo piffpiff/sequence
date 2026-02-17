@@ -30,7 +30,7 @@ function formatKST(iso: string) {
 }
 
 export default async function QuestionDetailPage({ params }: PageProps) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 부모(현재) 질문 + 감독
   const { data: question, error: qError } = await supabase
