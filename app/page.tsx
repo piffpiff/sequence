@@ -69,12 +69,8 @@ function unwrapDirector(d: QuestionRow['directors']): DirectorJoin | null {
   return Array.isArray(d) ? (d[0] ?? null) : d;
 }
 
-/**
- * 메인 피드 규칙: 루트 질문만 노출
- * - child_question_id로 등장하는 질문(이어묻기 질문)은 제외
- */
 async function fetchRootQuestionsForFeed(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   targetCount: number
 ): Promise<{ items: Omit<FeedItem, 'reply_count'>[]; error: string | null }> {
   const BATCH = 25;
@@ -156,12 +152,11 @@ async function fetchRootQuestionsForFeed(
 export default async function HomePage() {
   noStore();
 
-  const supabase = createClient();
+  const supabase = await createClient(); // ✅
 
   const { items: baseFeed, error: baseErr } = await fetchRootQuestionsForFeed(supabase, 10);
 
-  // 이어묻기 수 계산
-  let replyCountByParent = new Map<string, number>();
+  const replyCountByParent = new Map<string, number>();
   if (!baseErr && baseFeed.length > 0) {
     const ids = baseFeed.map((q) => q.id);
 
@@ -185,7 +180,6 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
-      {/* 상단 로고 + 검색창 */}
       <header className="border-b border-zinc-800 bg-zinc-950/40">
         <div className="mx-auto max-w-5xl px-4 py-10">
           <div className="mb-6 flex items-center justify-between gap-4">
@@ -206,7 +200,6 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* 최신 질문 피드 */}
       <section className="mx-auto max-w-5xl px-4 py-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>

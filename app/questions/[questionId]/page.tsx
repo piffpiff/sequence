@@ -15,7 +15,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
-  params: { questionId: string };
+  params: Promise<{ questionId: string }>;
 };
 
 function formatKST(iso: string) {
@@ -31,7 +31,8 @@ function formatKST(iso: string) {
 }
 
 export default async function QuestionDetailPage({ params }: PageProps) {
-  const supabase = createClient();
+  const { questionId } = await params;          // ✅
+  const supabase = await createClient();        // ✅
 
   // 부모 질문 + 감독
   const { data: question, error: qError } = await supabase
@@ -49,14 +50,14 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         )
       `
     )
-    .eq('id', params.questionId)
+    .eq('id', questionId)
     .maybeSingle();
 
   if (qError || !question) notFound();
 
   const director = Array.isArray(question.directors) ? question.directors[0] : question.directors;
 
-  // 자식 질문 최신순: question_chains.created_at 기준
+  // 자식 질문 최신순(체인 생성시각 기준)
   const { data: edges, error: edgesError } = await supabase
     .from('question_chains')
     .select(
@@ -134,7 +135,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Hero: Parent question */}
+      {/* Hero */}
       <section className="relative overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.10),transparent_45%),radial-gradient(circle_at_10%_70%,rgba(255,255,255,0.06),transparent_40%)]" />
@@ -177,30 +178,11 @@ export default async function QuestionDetailPage({ params }: PageProps) {
                 </Link>
               </div>
             </div>
-
-            {director?.profile_image_url ? (
-              <div className="mt-6 flex justify-center">
-                <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/60 px-3 py-2">
-                  <div className="h-9 w-9 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
-                    <img
-                      src={director.profile_image_url}
-                      alt={`${director.name} 프로필`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-xs font-medium text-zinc-200">{director.name}</div>
-                    <div className="text-[11px] text-zinc-500">감독</div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
 
-      {/* Children list */}
+      {/* Children */}
       <section className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -270,7 +252,7 @@ export default async function QuestionDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Floating reply button */}
+      {/* Floating reply */}
       <Link
         href={`/questions/${question.id}/reply`}
         className="fixed bottom-6 right-6 inline-flex h-12 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-100 px-5 text-sm font-semibold text-zinc-900 shadow-lg hover:bg-white"

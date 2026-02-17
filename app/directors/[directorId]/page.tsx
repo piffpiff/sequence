@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
-  params: { directorId: string };
+  params: Promise<{ directorId: string }>;
 };
 
 function formatKST(iso: string) {
@@ -21,33 +21,37 @@ function formatKST(iso: string) {
 }
 
 export default async function DirectorDetailPage({ params }: PageProps) {
-  const supabase = createClient();
+  const { directorId } = await params;          // ✅ Next 15 규칙: params await
+  const supabase = await createClient();        // ✅ Next 15 규칙: createClient await
 
   const { data: director, error: directorError } = await supabase
     .from('directors')
     .select('id, name, profile_image_url, tmdb_person_id, kmdb_person_id, name_en, biography')
-    .eq('id', params.directorId)
+    .eq('id', directorId)
     .maybeSingle();
 
   if (directorError || !director) notFound();
 
-  const { data: questions } = await supabase
+  const { data: questions, error: questionsError } = await supabase
     .from('questions')
     .select('id, body, created_at')
     .eq('director_id', director.id)
     .order('created_at', { ascending: false })
     .limit(50);
 
-  const safeQuestions = questions ?? [];
+  // 질문 로딩 실패는 빈 상태로 처리
+  const safeQuestions = questionsError ? [] : (questions ?? []);
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
+      {/* Top Header */}
       <header className="relative overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.08),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.06),transparent_40%)]" />
 
         <div className="relative mx-auto max-w-5xl px-4 py-10 sm:py-14">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+            {/* Profile */}
             <div className="shrink-0">
               <div className="h-28 w-28 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-sm sm:h-32 sm:w-32">
                 {director.profile_image_url ? (
@@ -67,6 +71,7 @@ export default async function DirectorDetailPage({ params }: PageProps) {
               </div>
             </div>
 
+            {/* Title */}
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-2">
                 <h1 className="truncate text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
@@ -98,6 +103,7 @@ export default async function DirectorDetailPage({ params }: PageProps) {
               </div>
             </div>
 
+            {/* Ask button (top) */}
             <div className="sm:self-start">
               <Link
                 href={`/directors/${director.id}/ask`}
@@ -110,11 +116,14 @@ export default async function DirectorDetailPage({ params }: PageProps) {
         </div>
       </header>
 
+      {/* Content */}
       <section className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-zinc-200">질문 목록</h2>
-            <p className="mt-1 text-xs text-zinc-500">모든 질문은 물음표(?)로 끝나야 등록돼요.</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              모든 질문은 물음표(?)로 끝나야 등록돼요.
+            </p>
           </div>
 
           <div className="text-xs text-zinc-500">
@@ -125,7 +134,9 @@ export default async function DirectorDetailPage({ params }: PageProps) {
         {safeQuestions.length === 0 ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <p className="text-sm text-zinc-300">첫 질문을 남겨보세요.</p>
-            <p className="mt-2 text-xs text-zinc-500">이 감독에게 꼭 묻고 싶은 한 문장을 남겨주세요.</p>
+            <p className="mt-2 text-xs text-zinc-500">
+              이 감독에게 꼭 묻고 싶은 한 문장을 남겨주세요.
+            </p>
 
             <div className="mt-5">
               <Link
@@ -162,6 +173,7 @@ export default async function DirectorDetailPage({ params }: PageProps) {
         )}
       </section>
 
+      {/* Floating Ask Button */}
       <Link
         href={`/directors/${director.id}/ask`}
         className="fixed bottom-6 right-6 inline-flex h-12 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-100 px-5 text-sm font-semibold text-zinc-900 shadow-lg hover:bg-white"

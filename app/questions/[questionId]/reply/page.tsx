@@ -8,7 +8,7 @@ import { ArrowLeft, CornerDownRight, MessageCircle } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
-  params: { questionId: string };
+  params: Promise<{ questionId: string }>;
 };
 
 function formatKST(iso: string) {
@@ -24,7 +24,8 @@ function formatKST(iso: string) {
 }
 
 export default async function QuestionReplyPage({ params }: PageProps) {
-  const supabase = await createClient();
+  const { questionId } = await params;          // ✅
+  const supabase = await createClient();        // ✅
 
   const { data: parent, error } = await supabase
     .from('questions')
@@ -41,19 +42,17 @@ export default async function QuestionReplyPage({ params }: PageProps) {
       )
     `
     )
-    .eq('id', params.questionId)
+    .eq('id', questionId)
     .maybeSingle();
 
   if (error || !parent) notFound();
 
   const director = Array.isArray(parent.directors) ? parent.directors[0] : parent.directors;
 
-  // Server Action: parentQuestionId를 바인딩해서 useFormState에 맞는 형태로 변환
   const action = createFollowUpQuestion.bind(null, parent.id);
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
-      {/* Top bar */}
       <header className="border-b border-zinc-800 bg-zinc-950/60 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
@@ -79,7 +78,6 @@ export default async function QuestionReplyPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Parent Question */}
       <section className="relative overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.10),transparent_45%),radial-gradient(circle_at_10%_70%,rgba(255,255,255,0.06),transparent_40%)]" />
@@ -111,7 +109,6 @@ export default async function QuestionReplyPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Reply Form */}
       <section className="mx-auto max-w-4xl px-4 py-8">
         <div className="mx-auto max-w-3xl">
           <h2 className="text-sm font-semibold text-zinc-200">이어 묻기 작성</h2>
