@@ -156,7 +156,7 @@ async function fetchRootQuestionsForFeed(
 
 export default async function HomePage() {
   noStore();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1) 루트 질문 10개 확보
   const { items: baseFeed, error: baseErr } = await fetchRootQuestionsForFeed(supabase, 10);
