@@ -70,12 +70,11 @@ function unwrapDirector(d: QuestionRow['directors']): DirectorJoin | null {
 }
 
 /**
- * 규칙: 메인 피드는 "루트 질문만" 노출
- * - question_chains.child_question_id로 등장하는 질문(이어묻기 질문)은 제외
+ * 메인 피드 규칙: 루트 질문만 노출
+ * - child_question_id로 등장하는 질문(이어묻기 질문)은 제외
  */
 async function fetchRootQuestionsForFeed(
-  // [핵심 수정] Awaited<...>를 추가해서 Promise가 풀린 타입을 받도록 명시합니다.
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createClient>,
   targetCount: number
 ): Promise<{ items: Omit<FeedItem, 'reply_count'>[]; error: string | null }> {
   const BATCH = 25;
@@ -115,7 +114,6 @@ async function fetchRootQuestionsForFeed(
       .map((q) => {
         seen.add(q.id);
         const director = unwrapDirector(q.directors);
-
         return {
           id: q.id,
           body: q.body,
@@ -157,13 +155,13 @@ async function fetchRootQuestionsForFeed(
 
 export default async function HomePage() {
   noStore();
-  const supabase = await createClient(); // (여긴 이미 await가 잘 되어 있었습니다)
 
-  // 1) 루트 질문 10개 확보
+  const supabase = createClient();
+
   const { items: baseFeed, error: baseErr } = await fetchRootQuestionsForFeed(supabase, 10);
 
-  // 2) 이어묻기 수 계산
-  const replyCountByParent = new Map<string, number>();
+  // 이어묻기 수 계산
+  let replyCountByParent = new Map<string, number>();
   if (!baseErr && baseFeed.length > 0) {
     const ids = baseFeed.map((q) => q.id);
 
@@ -187,61 +185,53 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
-      {/* 상단: 로고 + 검색 (기존 유지) */}
-      <header className="border-b-2 border-zinc-700 bg-black">
-        <div className="mx-auto max-w-5xl px-4 py-8">
-          <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 place-items-center border-2 border-zinc-700 bg-zinc-950 text-xl font-bold">
-              S
-            </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-3xl font-bold tracking-tight text-zinc-50">
-                Sequence
-              </h1>
-              <p className="mt-1 text-base text-zinc-300">
-                감독에게 “질문”만 남길 수 있는 곳
-              </p>
+      {/* 상단 로고 + 검색창 */}
+      <header className="border-b border-zinc-800 bg-zinc-950/40">
+        <div className="mx-auto max-w-5xl px-4 py-10">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-zinc-800 bg-zinc-950 text-sm font-semibold tracking-tight text-zinc-100">
+                S
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-semibold tracking-tight text-zinc-50">
+                  Sequence
+                </h1>
+                <p className="mt-1 text-xs text-zinc-500">감독에게 “질문”만 남길 수 있는 곳</p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6">
-            <DirectorSearchForm />
-          </div>
+          <DirectorSearchForm />
         </div>
       </header>
 
       {/* 최신 질문 피드 */}
       <section className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-end justify-between gap-4 border-b-2 border-zinc-700 pb-3">
+        <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="flex items-center gap-2 text-2xl font-bold text-zinc-50">
-              <MessageCircle className="h-6 w-6" />
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+              <MessageCircle className="h-4 w-4 text-zinc-500" />
               최신 질문 피드
             </h2>
-            <p className="mt-1 text-base text-zinc-300">
-              루트 질문만 최신순으로 10개 보여줘요.
-            </p>
+            <p className="mt-1 text-xs text-zinc-500">루트 질문만 최신순으로 10개 보여줘요.</p>
           </div>
 
-          <div className="text-base text-zinc-300">
-            {feed.length ? `${feed.length}개` : '0개'}
-          </div>
+          <div className="text-xs text-zinc-500">{feed.length ? `${feed.length}개` : '0개'}</div>
         </div>
 
         {baseErr ? (
-          <div className="mt-4 border-2 border-zinc-700 bg-zinc-950 p-5">
-            <p className="text-lg font-semibold">피드를 불러오지 못했어요.</p>
-            <p className="mt-2 text-base">{baseErr}</p>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+            <p className="text-sm text-zinc-300">피드를 불러오지 못했어요.</p>
+            <p className="mt-2 text-xs text-zinc-500">{baseErr}</p>
           </div>
         ) : feed.length === 0 ? (
-          <div className="mt-4 border-2 border-zinc-700 bg-zinc-950 p-5">
-            <p className="text-lg font-semibold">아직 질문이 없습니다.</p>
-            <p className="mt-2 text-base text-zinc-300">
-              감독을 검색하고 첫 질문을 남겨보세요.
-            </p>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+            <p className="text-sm text-zinc-300">아직 질문이 없습니다.</p>
+            <p className="mt-2 text-xs text-zinc-500">감독을 검색하고 첫 질문을 남겨보세요.</p>
           </div>
         ) : (
-          <ul className="mt-4 border-2 border-zinc-700 bg-zinc-950 divide-y-2 divide-zinc-700">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {feed.map((item) => {
               const directorName = item.director?.name ?? 'Unknown';
               const directorImg = item.director?.profile_image_url ?? null;
@@ -251,48 +241,52 @@ export default async function HomePage() {
                 <li key={item.id}>
                   <Link
                     href={`/questions/${item.id}`}
-                    className="block p-4 hover:bg-zinc-900"
+                    className="group block h-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 hover:bg-zinc-900/60"
                   >
-                    <div className="flex gap-4">
-                      {/* 감독 이미지 */}
-                      <div className="h-12 w-12 shrink-0 overflow-hidden border-2 border-zinc-700 bg-zinc-900">
-                        {directorImg ? (
-                          <img
-                            src={directorImg}
-                            alt={`${directorName} 프로필`}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="grid h-full w-full place-items-center text-lg font-bold">
-                            {initial}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 본문 */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-zinc-300">
-                          <span className="inline-flex items-center gap-2 font-semibold text-zinc-100">
-                            <User className="h-5 w-5" />
-                            <span className="truncate">{directorName}</span>
-                          </span>
-
-                          <span className="inline-flex items-center gap-2">
-                            <Clock className="h-5 w-5" />
-                            {timeAgoKorean(item.created_at)}
-                          </span>
-
-                          <span className="inline-flex items-center gap-2 border border-zinc-700 bg-black px-3 py-1 font-semibold">
-                            <CornerDownRight className="h-5 w-5" />
-                            이어묻기 {item.reply_count}
-                          </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+                          {directorImg ? (
+                            <img
+                              src={directorImg}
+                              alt={`${directorName} 프로필`}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center text-xs font-semibold text-zinc-300">
+                              {initial}
+                            </div>
+                          )}
                         </div>
 
-                        <p className="mt-3 line-clamp-2 text-xl font-semibold leading-snug text-zinc-50">
-                          {item.body}
-                        </p>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1 text-xs text-zinc-400">
+                            <User className="h-3.5 w-3.5 text-zinc-600" />
+                            <span className="truncate">{directorName}</span>
+                          </div>
+                        </div>
                       </div>
+
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-zinc-500">
+                        <Clock className="h-3.5 w-3.5 text-zinc-600" />
+                        {timeAgoKorean(item.created_at)}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-zinc-100 group-hover:text-white">
+                      {item.body}
+                    </p>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-black px-2 py-1 text-[11px] text-zinc-400">
+                        <CornerDownRight className="h-3.5 w-3.5 text-zinc-600" />
+                        이어묻기 {item.reply_count}
+                      </span>
+
+                      <span className="text-[11px] text-zinc-600 group-hover:text-zinc-400">
+                        열기 →
+                      </span>
                     </div>
                   </Link>
                 </li>

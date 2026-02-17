@@ -1,13 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Clock, MessageCircle, Plus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-// 1. [수정] params를 Promise로 감싸줍니다.
 type PageProps = {
-  params: Promise<{ directorId: string }>;
+  params: { directorId: string };
 };
 
 function formatKST(iso: string) {
@@ -22,18 +20,13 @@ function formatKST(iso: string) {
   }
 }
 
-// 2. [수정] 함수 인자를 props로 받고, await 처리를 합니다.
-export default async function DirectorDetailPage(props: PageProps) {
-  const params = await props.params; // 여기서 await 필수!
-  const { directorId } = params;
-
-  // 3. [수정] supabase 클라이언트 생성 시 await를 붙입니다.
-  const supabase = await createClient();
+export default async function DirectorDetailPage({ params }: PageProps) {
+  const supabase = createClient();
 
   const { data: director, error: directorError } = await supabase
     .from('directors')
-    .select('id, name, profile_image_url, tmdb_person_id, kmdb_person_id')
-    .eq('id', directorId) // params.directorId 대신 위에서 꺼낸 directorId 사용
+    .select('id, name, profile_image_url, tmdb_person_id, kmdb_person_id, name_en, biography')
+    .eq('id', params.directorId)
     .maybeSingle();
 
   if (directorError || !director) notFound();
@@ -49,13 +42,14 @@ export default async function DirectorDetailPage(props: PageProps) {
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
-      {/* 헤더(단색 + 굵은 구분선) */}
-      <header className="border-b-2 border-zinc-700 bg-black">
-        <div className="mx-auto max-w-5xl px-4 py-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              {/* 프로필 */}
-              <div className="h-20 w-20 shrink-0 overflow-hidden border-2 border-zinc-700 bg-zinc-900">
+      <header className="relative overflow-hidden border-b border-zinc-800">
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
+        <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.08),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.06),transparent_40%)]" />
+
+        <div className="relative mx-auto max-w-5xl px-4 py-10 sm:py-14">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+            <div className="shrink-0">
+              <div className="h-28 w-28 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-sm sm:h-32 sm:w-32">
                 {director.profile_image_url ? (
                   <img
                     src={director.profile_image_url}
@@ -64,86 +58,101 @@ export default async function DirectorDetailPage(props: PageProps) {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="grid h-full w-full place-items-center text-2xl font-bold">
-                    {director.name?.[0] ?? '?'}
+                  <div className="grid h-full w-full place-items-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-lg font-semibold text-zinc-200">
+                      {director.name?.[0] ?? '?'}
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* 제목 */}
-              <div className="min-w-0">
-                <h1 className="truncate text-3xl font-bold tracking-tight text-zinc-50">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-2">
+                <h1 className="truncate text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
                   {director.name}
                 </h1>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-base text-zinc-300">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
                   {director.tmdb_person_id ? (
-                    <span className="border border-zinc-700 bg-zinc-950 px-3 py-1">
+                    <span className="rounded-full border border-zinc-800 bg-zinc-950 px-2 py-1">
                       TMDB #{director.tmdb_person_id}
                     </span>
                   ) : null}
+                  {director.name_en ? (
+                    <span className="rounded-full border border-zinc-800 bg-zinc-950 px-2 py-1">
+                      {director.name_en}
+                    </span>
+                  ) : null}
                 </div>
+
+                {director.biography ? (
+                  <p className="mt-2 line-clamp-3 max-w-2xl text-sm leading-relaxed text-zinc-300">
+                    {director.biography}
+                  </p>
+                ) : (
+                  <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+                    이 감독에게 남기고 싶은 질문을 모아보세요.
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* 질문하기 버튼 */}
-            <div className="flex items-center gap-3">
+            <div className="sm:self-start">
               <Link
                 href={`/directors/${director.id}/ask`}
-                className="inline-flex items-center gap-2 border-2 border-zinc-700 bg-zinc-100 px-5 py-3 text-lg font-bold text-zinc-900 hover:bg-white"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white"
               >
-                <Plus className="h-6 w-6" />
-                질문하기
+                질문하기 <span className="text-base leading-none">+</span>
               </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* 질문 목록(게시판형) */}
-      <section className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-end justify-between gap-4 border-b-2 border-zinc-700 pb-3">
+      <section className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 className="flex items-center gap-2 text-2xl font-bold text-zinc-50">
-              <MessageCircle className="h-6 w-6" />
-              질문 목록
-            </h2>
-            <p className="mt-1 text-base text-zinc-300">
-              모든 질문은 물음표(?)로 끝나야 등록돼요.
-            </p>
+            <h2 className="text-sm font-semibold text-zinc-200">질문 목록</h2>
+            <p className="mt-1 text-xs text-zinc-500">모든 질문은 물음표(?)로 끝나야 등록돼요.</p>
           </div>
 
-          <div className="text-base text-zinc-300">
+          <div className="text-xs text-zinc-500">
             {safeQuestions.length ? `${safeQuestions.length}개` : '0개'}
           </div>
         </div>
 
         {safeQuestions.length === 0 ? (
-          <div className="mt-4 border-2 border-zinc-700 bg-zinc-950 p-5">
-            <p className="text-lg font-semibold">첫 질문을 남겨보세요.</p>
-            <p className="mt-2 text-base text-zinc-300">
-              이 감독에게 꼭 묻고 싶은 한 문장을 남겨주세요.
-            </p>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+            <p className="text-sm text-zinc-300">첫 질문을 남겨보세요.</p>
+            <p className="mt-2 text-xs text-zinc-500">이 감독에게 꼭 묻고 싶은 한 문장을 남겨주세요.</p>
 
             <div className="mt-5">
               <Link
                 href={`/directors/${director.id}/ask`}
-                className="inline-flex items-center gap-2 border-2 border-zinc-700 bg-zinc-100 px-5 py-3 text-lg font-bold text-zinc-900 hover:bg-white"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white"
               >
-                <Plus className="h-6 w-6" />
-                질문하기
+                질문하기 <span className="text-base leading-none">+</span>
               </Link>
             </div>
           </div>
         ) : (
-          <ul className="mt-4 border-2 border-zinc-700 bg-zinc-950 divide-y-2 divide-zinc-700">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {safeQuestions.map((q) => (
               <li key={q.id}>
-                <Link href={`/questions/${q.id}`} className="block p-4 hover:bg-zinc-900">
-                  <p className="text-xl font-semibold leading-snug text-zinc-50">{q.body}</p>
-
-                  <div className="mt-3 flex items-center gap-2 text-base text-zinc-300">
-                    <Clock className="h-5 w-5" />
+                <Link
+                  href={`/questions/${q.id}`}
+                  className="group block rounded-2xl border border-zinc-800 bg-zinc-950 p-4 hover:bg-zinc-900/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="line-clamp-3 text-sm leading-relaxed text-zinc-100 group-hover:text-white">
+                      {q.body}
+                    </p>
+                    <span className="shrink-0 rounded-full border border-zinc-800 bg-black px-2 py-1 text-[10px] text-zinc-400">
+                      보기
+                    </span>
+                  </div>
+                  <div className="mt-3 text-xs text-zinc-500">
                     {q.created_at ? formatKST(q.created_at) : ''}
                   </div>
                 </Link>
@@ -153,14 +162,12 @@ export default async function DirectorDetailPage(props: PageProps) {
         )}
       </section>
 
-      {/* 플로팅 질문하기 버튼 */}
       <Link
         href={`/directors/${director.id}/ask`}
-        className="fixed bottom-6 right-6 inline-flex items-center gap-2 border-2 border-zinc-700 bg-zinc-100 px-5 py-3 text-lg font-bold text-zinc-900 shadow-lg hover:bg-white"
+        className="fixed bottom-6 right-6 inline-flex h-12 items-center gap-2 rounded-full border border-zinc-700 bg-zinc-100 px-5 text-sm font-semibold text-zinc-900 shadow-lg hover:bg-white"
         aria-label="질문하기"
       >
-        <Plus className="h-6 w-6" />
-        질문하기
+        질문하기 <span className="text-lg leading-none">+</span>
       </Link>
     </main>
   );
