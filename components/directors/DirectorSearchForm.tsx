@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { searchDirectors, upsertDirector } from '@/app/actions/director';
 
@@ -13,12 +13,16 @@ export default function DirectorSearchForm() {
   const [results, setResults] = useState<SearchItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const [isPending, startTransition] = useTransition();
+  const [isSearching, setIsSearching] = useState(false);
   const [savingTmdbId, setSavingTmdbId] = useState<number | null>(null);
 
-  const canSearch = useMemo(() => query.trim().length > 0 && !isPending, [query, isPending]);
+  const isSaving = savingTmdbId !== null;
+  const canSearch = useMemo(
+    () => query.trim().length > 0 && !isSearching && !isSaving,
+    [query, isSearching, isSaving]
+  );
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -28,36 +32,40 @@ export default function DirectorSearchForm() {
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const data = await searchDirectors(q);
-        setResults(data);
-      } catch (err) {
-        setResults([]);
-        setError(err instanceof Error ? err.message : '검색 중 오류가 발생했어요.');
-      }
-    });
+    try {
+      setIsSearching(true);
+      const data = await searchDirectors(q);
+      setResults(data);
+    } catch (err) {
+      setResults([]);
+      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했어요.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  const onPick = (item: SearchItem) => {
+  const onPick = async (item: SearchItem) => {
     setError(null);
     setSavingTmdbId(item.tmdb_id);
 
-    startTransition(async () => {
-      try {
-        const directorId = await upsertDirector({
-          tmdb_id: item.tmdb_id,
-          name: item.name,
-          profile_path: item.profile_path,
-          profile_image_url: item.profile_image_url,
-        });
+    try {
+      const directorId = await upsertDirector({
+        tmdb_id: item.tmdb_id,
+        name: item.name,
+        profile_path: item.profile_path,
+        profile_image_url: item.profile_image_url,
+      });
 
-        router.push(`/directors/${directorId}`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '저장 중 오류가 발생했어요.');
-        setSavingTmdbId(null);
+      if (!directorId || typeof directorId !== 'string') {
+        throw new Error('감독 페이지 주소를 가져오지 못했어요.');
       }
-    });
+
+      router.push(`/directors/${directorId}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '저장 중 오류가 발생했어요.');
+      setSavingTmdbId(null);
+    }
   };
 
   return (
@@ -71,16 +79,15 @@ export default function DirectorSearchForm() {
               placeholder="질문할 감독 이름을 입력하세요"
               className="w-full flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-base text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-zinc-600"
               aria-label="감독 검색어"
+              disabled={isSearching || isSaving}
             />
 
             <button
               type="submit"
               disabled={!canSearch}
-              className="rounded-xl px-6 py-3 text-base font-semibold
-                         bg-zinc-100 text-zinc-900
-                         hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl px-6 py-3 text-base font-semibold bg-zinc-100 text-zinc-900 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? '찾는 중…' : '질문할 감독 찾기'}
+              {isSearching ? '찾는 중…' : '질문할 감독 찾기'}
             </button>
           </div>
 
@@ -92,21 +99,21 @@ export default function DirectorSearchForm() {
 
           <div className="mt-4">
             {results.length === 0 ? (
-              <div className="text-sm text-zinc-500">{query.trim() ? '검색 결과가 없어요.' : ''}</div>
+              <div className="text-sm text-zinc-500">
+                {query.trim() ? '검색 결과가 없어요.' : ''}
+              </div>
             ) : (
               <ul className="overflow-hidden rounded-xl border border-zinc-800 divide-y divide-zinc-800">
                 {results.map((item) => {
-                  const isSaving = savingTmdbId === item.tmdb_id;
+                  const rowSaving = savingTmdbId === item.tmdb_id;
 
                   return (
                     <li key={item.tmdb_id}>
                       <button
                         type="button"
                         onClick={() => onPick(item)}
-                        disabled={isPending}
-                        className="w-full flex items-center gap-4 p-4 text-left
-                                   bg-zinc-950 hover:bg-zinc-900
-                                   disabled:opacity-60 disabled:cursor-not-allowed"
+                        disabled={isSearching || isSaving}
+                        className="w-full flex items-center gap-4 p-4 text-left bg-zinc-950 hover:bg-zinc-900 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-zinc-800">
                           {item.profile_image_url ? (
@@ -143,7 +150,7 @@ export default function DirectorSearchForm() {
                         </div>
 
                         <div className="shrink-0 text-sm text-zinc-400">
-                          {isSaving ? '이동…' : '선택'}
+                          {rowSaving ? '이동…' : '선택'}
                         </div>
                       </button>
                     </li>
