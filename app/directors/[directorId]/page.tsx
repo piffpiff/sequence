@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import PageNav from '@/components/navigation/PageNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,12 @@ export default async function DirectorDetailPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
+            <PageNav
+        items={[
+          { label: 'Main', href: '/' },
+          { label: 'Director' },
+        ]}
+      />
       <header className="relative overflow-hidden border-b border-zinc-800">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-900" />
 

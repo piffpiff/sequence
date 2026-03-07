@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createFollowUpQuestion } from '@/app/actions/question-chain';
 import QuestionReplyForm from '@/components/questions/QuestionReplyForm';
 import { ArrowLeft, CornerDownRight, MessageCircle } from 'lucide-react';
+import PageNav from '@/components/navigation/PageNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,16 +54,18 @@ export default async function QuestionReplyPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
+            <PageNav
+        items={[
+          { label: 'Main', href: '/' },
+          { label: 'Director', href: director?.id ? `/directors/${director.id}` : '/' },
+          { label: 'Question', href: `/questions/${parent.id}` },
+          { label: 'Reply' },
+        ]}
+      />
       <header className="border-b border-zinc-800 bg-zinc-950/60 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link
-              href={`/questions/${parent.id}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              질문으로 돌아가기
-            </Link>
+        
 
             {director?.id ? (
               <Link

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import QuestionComposer from '@/components/questions/QuestionComposer';
+import PageNav from '@/components/navigation/PageNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,14 @@ export default async function AskPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 text-white">
+            <PageNav
+        items={[
+          { label: 'Main', href: '/' },
+          { label: 'Director', href: `/directors/${director.id}` },
+          { label: 'Ask' },
+        ]}
+      />
+      
       <div className="w-full max-w-lg">
         <h1 className="mb-8 text-2xl font-bold text-center">
           <span className="text-zinc-500">To.</span> {director.name}
