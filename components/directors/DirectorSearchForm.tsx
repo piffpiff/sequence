@@ -17,6 +17,7 @@ export default function DirectorSearchForm() {
   const [savingTmdbId, setSavingTmdbId] = useState<number | null>(null);
 
   const isSaving = savingTmdbId !== null;
+
   const canSearch = useMemo(
     () => query.trim().length > 0 && !isSearching && !isSaving,
     [query, isSearching, isSaving]
@@ -60,8 +61,22 @@ export default function DirectorSearchForm() {
         throw new Error('감독 페이지 주소를 가져오지 못했어요.');
       }
 
-      router.push(`/directors/${directorId}`);
+      const nextUrl = `/directors/${directorId}`;
+
+      console.log('selected item:', item);
+      console.log('directorId:', directorId);
+      console.log('nextUrl:', nextUrl);
+
+      // 1차: Next router 전환
+      router.push(nextUrl);
       router.refresh();
+
+      // 2차: 전환이 안 먹는 경우 강제 이동
+      setTimeout(() => {
+        if (window.location.pathname !== nextUrl) {
+          window.location.assign(nextUrl);
+        }
+      }, 150);
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장 중 오류가 발생했어요.');
       setSavingTmdbId(null);
