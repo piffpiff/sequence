@@ -205,7 +205,7 @@ export default async function HomePage() {
         {baseErr ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <p className="text-sm text-zinc-300">피드를 불러오지 못했어요.</p>
-            <p className="mt-2 text-xs text-zinc-500">{baseErr}</p>
+            <p className="mt-2 text-xs text-zinc-500">지금 데이터베이스가 잠시 쉬고 있어요. 잠시 후 다시 시도해 주세요.</p>
           </div>
         ) : feed.length === 0 ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
